@@ -11,46 +11,49 @@
 // the (m x n) matrix C are stored in the sequence: {C_00, C_10, ..., C_m0,
 // C_01, C_11, ..., C_m1, C_02, ..., C_0n, C_1n, ..., C_mn}
 void MMult0(long m, long n, long k, double *a, double *b, double *c) {
-  for (long j = 0; j < n; j++) {
-    for (long p = 0; p < k; p++) {
-      for (long i = 0; i < m; i++) {
-        double A_ip = a[i+p*m];
-        double B_pj = b[p+j*k];
-        double C_ij = c[i+j*m];
-        C_ij = C_ij + A_ip * B_pj;
-        c[i+j*m] = C_ij;
+      for (long j = 0; j < n; j++) {
+        for (long p = 0; p < k; p++) {
+          for (long i = 0; i < m; i++) {
+            double A_ip = a[i+p*m];
+            double B_pj = b[p+j*k];
+            double C_ij = c[i+j*m];
+            C_ij = C_ij + A_ip * B_pj;
+            c[i+j*m] = C_ij;
+          }
+        }
       }
-    }
-  }
 }
 
-void MMult1(long m, long n, long kk, double *a, double *b, double *c) {
 
-  for (long i = 0; i < n; i++) {
-    for (long j = 0; j < kk; j++) {
-      for (long k = 0; k < m; k++) {
+// {j,p,i} {j,i,p} {p,j,i} {p,i,j} {i,j,p} {i,p,j}
+void MMult1(long m, long n, long k, long blocksize, double *a, double *b, double *c) {
 
-        double A_ip = a[k+j*m];
-        double B_pj = b[j+i*kk];
-        double C_ij = c[k+i*m];
+  for (long block=0; block<n; block+=blocksize) {
 
+    for (long j = block; j < (block+blocksize); j++) {
+      for (long p = 0; p < k; p++) {
 
-        C_ij = C_ij + A_ip * B_pj;
-        c[k+i*m] = C_ij;
+          for (long i = 0; i < m; i++) {
+
+            double A_ip = a[i+p*m];
+            double B_pj = b[p+j*k];
+            double C_ij = c[i+j*m];
+            C_ij = C_ij + A_ip * B_pj;
+            c[i+j*m] = C_ij;
+          }
+        }
       }
-
-    }
   }
 
 }
 
 int main(int argc, char** argv) {
   const long PFIRST = BLOCK_SIZE;
-  // const long PLAST = 2000;
-  const long PLAST = 1000;
+  const long PLAST = 2000;
+  //const long PLAST = 1000;
   const long PINC = std::max(50/BLOCK_SIZE,1) * BLOCK_SIZE; // multiple of BLOCK_SIZE
 
-  printf(" Dimension       Time    Gflop/s       GB/s        Error\n");
+  printf(" Dimension,       Time,    Gflop/s,       GB/s,        Error\n");
   for (long p = PFIRST; p < PLAST; p += PINC) {
     long m = p, n = p, k = p;
     long NREPEATS = 1e9/(m*n*k)+1;
@@ -72,7 +75,7 @@ int main(int argc, char** argv) {
     Timer t;
     t.tic();
     for (long rep = 0; rep < NREPEATS; rep++) {
-      MMult1(m, n, k, a, b, c);
+      MMult1(m, n, k, BLOCK_SIZE, a, b, c);
     }
     double time = t.toc();
 
@@ -83,7 +86,7 @@ int main(int argc, char** argv) {
     double bandwidth = 0; // TODO: calculate from m, n, k, NREPEATS, time
     bandwidth = NREPEATS * 4 * m * n * k * sizeof(double) / 1e9 / t.toc();
 
-    printf("%10ld %10f %10f %10f", p, time, flop_rate, bandwidth);
+    printf("%10ld, %10f, %10f, %10f, ", p, time, flop_rate, bandwidth);
 
     double max_err = 0;
     for (long i = 0; i < m*n; i++) max_err = std::max(max_err, fabs(c[i] - c_ref[i]));
