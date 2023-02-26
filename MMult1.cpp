@@ -3,9 +3,10 @@
 #include <stdio.h>
 #include <math.h>
 // #include <omp.h> 
+#include "/opt/homebrew/opt/libomp/include/omp.h"
 #include "utils.h"
 
-#define BLOCK_SIZE 16
+#define BLOCK_SIZE 4
 
 // Note: matrices are stored in column major order; i.e. the array elements in
 // the (m x n) matrix C are stored in the sequence: {C_00, C_10, ..., C_m0,
@@ -22,6 +23,8 @@ void MMult0(long m, long n, long k, double *a, double *b, double *c) {
           }
         }
       }
+
+
 }
 
 
@@ -30,8 +33,8 @@ void MMult1(long m, long n, long k, long blocksize, double *a, double *b, double
 
   for (long block=0; block<n; block+=blocksize) {
 
-    for (long j = block; j < (block+blocksize); j++) {
-      for (long p = 0; p < k; p++) {
+    for (long p = 0; p < k; p++) {
+      for (long j = block; j < (block+blocksize); j++) {
 
           for (long i = 0; i < m; i++) {
 
@@ -42,8 +45,11 @@ void MMult1(long m, long n, long k, long blocksize, double *a, double *b, double
             c[i+j*m] = C_ij;
           }
         }
-      }
+
+    }
   }
+
+  
 
 }
 
@@ -55,6 +61,8 @@ int main(int argc, char** argv) {
 
   printf(" Dimension,       Time,    Gflop/s,       GB/s,        Error\n");
   for (long p = PFIRST; p < PLAST; p += PINC) {
+
+
     long m = p, n = p, k = p;
     long NREPEATS = 1e9/(m*n*k)+1;
     double* a = (double*) aligned_malloc(m * k * sizeof(double)); // m x k
@@ -95,7 +103,8 @@ int main(int argc, char** argv) {
     aligned_free(a);
     aligned_free(b);
     aligned_free(c);
-  }
+
+}
 
   return 0;
 }
