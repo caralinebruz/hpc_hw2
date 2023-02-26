@@ -2,8 +2,8 @@
 
 #include <stdio.h>
 #include <math.h>
-// #include <omp.h> 
-#include "/opt/homebrew/opt/libomp/include/omp.h"
+#include <omp.h> 
+// #include "/opt/homebrew/opt/libomp/include/omp.h"
 #include "utils.h"
 
 #define BLOCK_SIZE 4
@@ -24,13 +24,14 @@ void MMult0(long m, long n, long k, double *a, double *b, double *c) {
         }
       }
 
-
 }
 
 
 // {j,p,i} {j,i,p} {p,j,i} {p,i,j} {i,j,p} {i,p,j}
 void MMult1(long m, long n, long k, long blocksize, double *a, double *b, double *c) {
 
+  #pragma omp parallel
+  #pragma omp for
   for (long block=0; block<n; block+=blocksize) {
 
     for (long p = 0; p < k; p++) {
@@ -49,7 +50,7 @@ void MMult1(long m, long n, long k, long blocksize, double *a, double *b, double
     }
   }
 
-  
+
 
 }
 
