@@ -14,6 +14,8 @@
 #include <immintrin.h>
 #endif
 
+using namespace std;
+
 
 // coefficients in the Taylor series expansion of sin(x)
 static constexpr double c3  = -1/(((double)2)*3);
@@ -51,6 +53,7 @@ void sin4_intrin(double* sinx, const double* x) {
   // The definition of intrinsic functions can be found at:
   // https://software.intel.com/sites/landingpage/IntrinsicsGuide/#
 #if defined(__AVX__)
+  cout << "AVX" << endl;
   __m256d x1, x2, x3;
   x1  = _mm256_load_pd(x);
   x2  = _mm256_mul_pd(x1, x1);
@@ -59,7 +62,9 @@ void sin4_intrin(double* sinx, const double* x) {
   __m256d s = x1;
   s = _mm256_add_pd(s, _mm256_mul_pd(x3 , _mm256_set1_pd(c3 )));
   _mm256_store_pd(sinx, s);
+
 #elif defined(__SSE2__)
+  cout << "SSE2" << endl;
   constexpr int sse_length = 2;
   for (int i = 0; i < 4; i+=sse_length) {
     __m128d x1, x2, x3;
