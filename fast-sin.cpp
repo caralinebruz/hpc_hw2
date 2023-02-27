@@ -3,6 +3,10 @@
 #include "utils.h"
 #include "intrin-wrapper.h"
 
+// for my couts
+#include <iostream>
+
+
 // Headers for intrinsics
 #ifdef __SSE__
 #include <xmmintrin.h>
@@ -29,6 +33,7 @@ void sin4_reference(double* sinx, const double* x) {
   for (long i = 0; i < 4; i++) sinx[i] = sin(x[i]);
 }
 
+
 void sin4_taylor(double* sinx, const double* x) {
   for (int i = 0; i < 4; i++) {
     double x1  = x[i];
@@ -52,26 +57,56 @@ void sin4_taylor(double* sinx, const double* x) {
 void sin4_intrin(double* sinx, const double* x) {
   // The definition of intrinsic functions can be found at:
   // https://software.intel.com/sites/landingpage/IntrinsicsGuide/#
-#if defined(__AVX__)
-  cout << "AVX" << endl;
-  __m256d x1, x2, x3;
-  x1  = _mm256_load_pd(x);
-  x2  = _mm256_mul_pd(x1, x1);
-  x3  = _mm256_mul_pd(x1, x2);
 
-  __m256d s = x1;
+#if defined(__AVX__)
+
+    // define that we plan to use these 256 registers for vars
+  __m256d x1, x2, x3;
+  __m256d x5, x7, x9, x11;
+
+  x1  = _mm256_load_pd(x);    // load the starting value of x
+  x2  = _mm256_mul_pd(x1, x1);  // x2 = x1 * x1
+  x3  = _mm256_mul_pd(x1, x2);  // x3 = x1 * x2
+  x5  = _mm256_mul_pd(x3, x2);  // x5 = x3 * x2
+  x7  = _mm256_mul_pd(x5, x2);  // x7 = x5 * x2
+  x9  = _mm256_mul_pd(x7, x2);  // x9  = x7 * x2
+  x11 = _mm256_mul_pd(x9, x2);  // x11 = x9 * x2
+
+
+
+
+  __m256d s = x1;   // temp s = x1
+
+  // s = s + x3 * c3
   s = _mm256_add_pd(s, _mm256_mul_pd(x3 , _mm256_set1_pd(c3 )));
+
+  // s = s + x5  * c5;
+  s = _mm256_add_pd(s, _mm256_mul_pd(x5 , _mm256_set1_pd(c5 )));
+
+  // s += x7  * c7;
+  s = _mm256_add_pd(s, _mm256_mul_pd(x7 , _mm256_set1_pd(c7 )));
+
+  // s += x9  * c9;
+  s = _mm256_add_pd(s, _mm256_mul_pd(x9 , _mm256_set1_pd(c9 )));
+
+  // s += x11 * c11;
+  s = _mm256_add_pd(s, _mm256_mul_pd(x11 , _mm256_set1_pd(c11 )));
+
+
   _mm256_store_pd(sinx, s);
 
+
+
+
+
 #elif defined(__SSE2__)
-  cout << "SSE2" << endl;
   constexpr int sse_length = 2;
   for (int i = 0; i < 4; i+=sse_length) {
+
     __m128d x1, x2, x3;
     x1  = _mm_load_pd(x+i);
     x2  = _mm_mul_pd(x1, x1);
     x3  = _mm_mul_pd(x1, x2);
-
     __m128 s = x1;
     s = _mm_add_pd(s, _mm_mul_pd(x3 , _mm_set1_pd(c3 )));
     _mm_store_pd(sinx+i, s);
@@ -96,12 +131,26 @@ void sin4_vector(double* sinx, const double* x) {
 
 double err(double* x, double* y, long N) {
   double error = 0;
-  for (long i = 0; i < N; i++) error = std::max(error, fabs(x[i]-y[i]));
+
+  // std::cout << "first: " << first << std::endl;
+  // std::cout << "second: " << second << std::endl;
+
+  for (long i = 0; i < N; i++) {
+
+   auto x_i =  fabs(x[i]);
+   auto y_i =  fabs(y[i]);
+   std::cout << "(i: " << i << ")  ref: " << x[i] << ", intrin: " << y[i] << std::endl;
+
+
+    error = std::max(error, fabs(x[i]-y[i]));
+
+  }
   return error;
 }
 
 int main() {
   Timer tt;
+  // N = 1 Million
   long N = 1000000;
   double* x = (double*) aligned_malloc(N*sizeof(double));
   double* sinx_ref = (double*) aligned_malloc(N*sizeof(double));
@@ -118,19 +167,24 @@ int main() {
 
   tt.tic();
   for (long rep = 0; rep < 1000; rep++) {
+    // do this 1000 times
+      // for 0... 1 Million, increments of 4
+
     for (long i = 0; i < N; i+=4) {
+
+      // next element in aligned array, next element in x array
       sin4_reference(sinx_ref+i, x+i);
     }
   }
   printf("Reference time: %6.4f\n", tt.toc());
 
-  tt.tic();
-  for (long rep = 0; rep < 1000; rep++) {
-    for (long i = 0; i < N; i+=4) {
-      sin4_taylor(sinx_taylor+i, x+i);
-    }
-  }
-  printf("Taylor time:    %6.4f      Error: %e\n", tt.toc(), err(sinx_ref, sinx_taylor, N));
+  // tt.tic();
+  // for (long rep = 0; rep < 1000; rep++) {
+  //   for (long i = 0; i < N; i+=4) {
+  //     sin4_taylor(sinx_taylor+i, x+i);
+  //   }
+  // }
+  // printf("Taylor time:    %6.4f      Error: %e\n", tt.toc(), err(sinx_ref, sinx_taylor, N));
 
   tt.tic();
   for (long rep = 0; rep < 1000; rep++) {
@@ -140,13 +194,13 @@ int main() {
   }
   printf("Intrin time:    %6.4f      Error: %e\n", tt.toc(), err(sinx_ref, sinx_intrin, N));
 
-  tt.tic();
-  for (long rep = 0; rep < 1000; rep++) {
-    for (long i = 0; i < N; i+=4) {
-      sin4_vector(sinx_vector+i, x+i);
-    }
-  }
-  printf("Vector time:    %6.4f      Error: %e\n", tt.toc(), err(sinx_ref, sinx_vector, N));
+  // tt.tic();
+  // for (long rep = 0; rep < 1000; rep++) {
+  //   for (long i = 0; i < N; i+=4) {
+  //     sin4_vector(sinx_vector+i, x+i);
+  //   }
+  // }
+  // printf("Vector time:    %6.4f      Error: %e\n", tt.toc(), err(sinx_ref, sinx_vector, N));
 
   aligned_free(x);
   aligned_free(sinx_ref);
