@@ -73,8 +73,6 @@ void sin4_intrin(double* sinx, const double* x) {
   x11 = _mm256_mul_pd(x9, x2);  // x11 = x9 * x2
 
 
-
-
   __m256d s = x1;   // temp s = x1
 
   // s = s + x3 * c3
@@ -94,9 +92,6 @@ void sin4_intrin(double* sinx, const double* x) {
 
 
   _mm256_store_pd(sinx, s);
-
-
-
 
 
 #elif defined(__SSE2__)
@@ -132,15 +127,11 @@ void sin4_vector(double* sinx, const double* x) {
 double err(double* x, double* y, long N) {
   double error = 0;
 
-  // std::cout << "first: " << first << std::endl;
-  // std::cout << "second: " << second << std::endl;
-
   for (long i = 0; i < N; i++) {
 
-   auto x_i =  fabs(x[i]);
-   auto y_i =  fabs(y[i]);
-   std::cout << "(i: " << i << ")  ref: " << x[i] << ", intrin: " << y[i] << std::endl;
-
+  //  auto x_i =  fabs(x[i]);
+  //  auto y_i =  fabs(y[i]);
+  //  std::cout << "(i: " << i << ")  ref: " << x[i] << ", intrin: " << y[i] << std::endl;
 
     error = std::max(error, fabs(x[i]-y[i]));
 
@@ -178,13 +169,13 @@ int main() {
   }
   printf("Reference time: %6.4f\n", tt.toc());
 
-  // tt.tic();
-  // for (long rep = 0; rep < 1000; rep++) {
-  //   for (long i = 0; i < N; i+=4) {
-  //     sin4_taylor(sinx_taylor+i, x+i);
-  //   }
-  // }
-  // printf("Taylor time:    %6.4f      Error: %e\n", tt.toc(), err(sinx_ref, sinx_taylor, N));
+  tt.tic();
+  for (long rep = 0; rep < 1000; rep++) {
+    for (long i = 0; i < N; i+=4) {
+      sin4_taylor(sinx_taylor+i, x+i);
+    }
+  }
+  printf("Taylor time:    %6.4f      Error: %e\n", tt.toc(), err(sinx_ref, sinx_taylor, N));
 
   tt.tic();
   for (long rep = 0; rep < 1000; rep++) {
@@ -194,13 +185,13 @@ int main() {
   }
   printf("Intrin time:    %6.4f      Error: %e\n", tt.toc(), err(sinx_ref, sinx_intrin, N));
 
-  // tt.tic();
-  // for (long rep = 0; rep < 1000; rep++) {
-  //   for (long i = 0; i < N; i+=4) {
-  //     sin4_vector(sinx_vector+i, x+i);
-  //   }
-  // }
-  // printf("Vector time:    %6.4f      Error: %e\n", tt.toc(), err(sinx_ref, sinx_vector, N));
+  tt.tic();
+  for (long rep = 0; rep < 1000; rep++) {
+    for (long i = 0; i < N; i+=4) {
+      sin4_vector(sinx_vector+i, x+i);
+    }
+  }
+  printf("Vector time:    %6.4f      Error: %e\n", tt.toc(), err(sinx_ref, sinx_vector, N));
 
   aligned_free(x);
   aligned_free(sinx_ref);
